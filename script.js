@@ -3,12 +3,15 @@ const typedTextElement = document.getElementById('1text');
 const changeButton = document.getElementById('changeButton');
 const companionGif = document.getElementsByClassName('container-pixle-budd');
 const changeGifButton = document.getElementById('changeButton');
+const closingSection = document.getElementById('closingSection');
+const closingText = document.getElementById('closingText');
+const restartButton = document.getElementById('restartButton');
 
 // Create an array of text lines you want to cycle through
 const textsToType = [
   'Kenalin aku...serah sih mau panggil apa.',
   'UPS...kayaknya error',
-  'maklumin dia masin belajar',
+  'maklumin dia masih belajar',
   'aku ulangin lagi yah?',
   'Kenalin aku...serah sih mau panggil apa.',
   'tapi yang pasti aku buatannya si... .',
@@ -67,6 +70,76 @@ let textIndex = 0;
 let isTyping = false; // Flag untuk mencegah double click
 let currentTimeout = null; // Untuk menyimpan reference timeout yang sedang berjalan
 
+// Closing message
+const closingMessage = "TERIMA KASIH SUDAH MEMBACA! 💝";
+
+// Sound effect untuk closing (menggunakan Web Audio API)
+function playNotificationSound() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Create oscillator untuk sound effect
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Setting untuk sound effect yang menyenangkan
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+    oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.type = 'sine';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.log('Audio not supported in this browser');
+  }
+}
+
+// Fungsi untuk big text typing effect dengan sound
+function bigTypeEffect(text, element, callback) {
+  isTyping = true;
+  element.textContent = '';
+  let charIndex = 0;
+  const typingSpeed = 100; // Lebih lambat untuk dramatic effect
+
+  function typeChar() {
+    if (charIndex < text.length) {
+      element.textContent += text.charAt(charIndex);
+      charIndex++;
+      currentTimeout = setTimeout(typeChar, typingSpeed);
+    } else {
+      // Selesai typing, mainkan sound dan jalankan callback
+      playNotificationSound();
+      if (callback) callback();
+      isTyping = false;
+      currentTimeout = null;
+    }
+  }
+  
+  typeChar();
+}
+
+// Fungsi untuk show closing
+function showClosing() {
+  // Hide main content
+  document.querySelector('.container-web > .container-bubblechat').style.display = 'none';
+  document.querySelector('.container-pixle-budd').style.display = 'none';
+  changeButton.style.display = 'none';
+  
+  // Show closing section
+  closingSection.style.display = 'flex';
+  
+  // Start big typing effect
+  setTimeout(() => {
+    bigTypeEffect(closingMessage, closingText);
+  }, 500);
+}
 // Fungsi untuk membuat efek mengetik dengan pencegahan double click
 function typeEffect(text, element) {
   // Jika sedang mengetik, hentikan proses sebelumnya
@@ -117,10 +190,36 @@ changeButton.addEventListener('click', () => {
   // Pindah ke teks berikutnya dalam array
   textIndex++;
   
-  // Jika sudah mencapai akhir array, kembali ke awal
+  // Cek apakah sudah mencapai akhir array
   if (textIndex >= textsToType.length) {
-    textIndex = 0;
+    // Show closing setelah delay
+    setTimeout(() => {
+      showClosing();
+    }, 2000); // 2 detik setelah text terakhir selesai
   }
+});
+
+// Event listener untuk restart button
+restartButton.addEventListener('click', () => {
+  // Reset variables
+  textIndex = 0;
+  currentGifIndex = 0;
+  isTyping = false;
+  
+  // Show main content again
+  document.querySelector('.container-web > .container-bubblechat').style.display = 'flex';
+  document.querySelector('.container-pixle-budd').style.display = 'block';
+  changeButton.style.display = 'block';
+  changeButton.disabled = false;
+  
+  // Hide closing section
+  closingSection.style.display = 'none';
+  
+  // Reset GIF to first one
+  companionGif[0].src = gifLinks[0];
+  
+  // Start first text again
+  typeEffect(textsToType[0], typedTextElement);
 });
 
 // Panggil efek mengetik pertama kali saat halaman dimuat
